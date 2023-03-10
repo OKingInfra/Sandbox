@@ -1,0 +1,28 @@
+version: 2.1
+
+jobs:
+  build:
+    docker:
+      - image: circleci/python:3.8
+
+    steps:
+      - checkout
+      - run: pip install -r requirements.txt
+      - run: pytest tests.py
+      - run: python lint.py
+      - run: terraform init
+      - run: terraform validate
+      - run: terraform plan -out=tfplan
+      - run: terraform apply -auto-approve tfplan
+
+  deploy:
+    docker:
+      - image: circleci/python:3.8
+
+    steps:
+      - checkout
+      - run: pip install -r requirements.txt
+      - run: zip -r code.zip lambda_function.py
+      - run: aws s3 cp code.zip s3://lambda-code-bucket/
+      - run: terraform init
+      - run: terraform apply -auto-approve
